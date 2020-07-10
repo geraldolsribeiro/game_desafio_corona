@@ -1,16 +1,27 @@
+local anim8 = require 'anim8'
+
 debug = true
 
 player = {
   speed = 150,
   img = nil,
   x = 100,
-  y = 100
+  y = 100,
+  mask = 0
 }
 
 coronaImg = nil
+playerImg_0 = nil
+playerImg_1 = nil
+playerImg_2 = nil
+playerImg_3 = nil
+playerSndFatigue = nil
+playerSndDead = nil
+
 coronas = {}
 createCoronaTimerMax = 0.4
 createCoronaTimer = createCoronaTimerMax
+image = nil
 
 -- Collision detection taken function from http://love2d.org/wiki/BoundingBox.lua
 -- Returns true if two boxes overlap, false if they don't
@@ -21,8 +32,20 @@ function checkCollision(x1,y1,w1,h1, x2,y2,w2,h2)
 end
 
 function love.load(arg)
+  image = love.graphics.newImage('assets/corona_grid.png')
+  local g = anim8.newGrid(64, 64, image:getWidth(), image:getHeight())
+  animation = anim8.newAnimation(g('1-3',1), 0.1)
+
   coronaImg = love.graphics.newImage('assets/corona.png')
-  player.img = love.graphics.newImage('assets/player.png')
+  playerImg_0 = love.graphics.newImage('assets/player_0.png')
+  playerImg_1 = love.graphics.newImage('assets/player_1.png')
+  playerImg_2 = love.graphics.newImage('assets/player_2.png')
+  playerImg_3 = love.graphics.newImage('assets/player_3.png')
+  playerSndFatigue = love.audio.newSource('assets/NFF-boy-fatigue.wav', 'static')
+  playerSndDead = love.audio.newSource( 'assets/NFF-magic-drop.wav', 'static' )
+  player.img = playerImg_0;
+  player.mask = 0;
+  coronas = {}
 end
 
 function love.update(dt)
@@ -39,6 +62,8 @@ function love.update(dt)
   elseif love.keyboard.isDown('down','s') then
     player.y = player.y + (player.speed*dt)
   end
+
+  animation:update(dt)
 
   -- Create an enemy
   createCoronaTimer = createCoronaTimer - (1 * dt)
@@ -60,6 +85,20 @@ function love.update(dt)
   for i, corona in ipairs(coronas) do
     if checkCollision(corona.x, corona.y, corona.img:getWidth(), corona.img:getHeight(), player.x, player.y, player.img:getWidth(), player.img:getHeight()) then
       table.remove(coronas, i)
+      player.mask = player.mask + 1
+
+      playerSndFatigue:play()
+
+      if player.mask == 1 then
+        player.img = playerImg_1
+      elseif player.mask == 2 then
+        player.img = playerImg_2
+      elseif player.mask == 3 then
+        player.img = playerImg_3
+      else
+        playerSndDead:play()
+        love.load()
+      end
       -- table.remove(bullets, j)
       -- score = score + 1
     end
@@ -70,6 +109,8 @@ end
 function love.draw(dt)
   love.graphics.draw(player.img, player.x, player.y)
   for i, corona in ipairs(coronas) do
-    love.graphics.draw(corona.img, corona.x, corona.y)
+    -- love.graphics.draw(corona.img, corona.x, corona.y)
+    animation:draw(image, corona.x, corona.y)
   end
+
 end

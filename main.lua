@@ -52,36 +52,7 @@ function checkCollision(x1,y1,w1,h1, x2,y2,w2,h2)
   return x1 < x2+w2 and x2 < x1+w1 and y1 < y2+h2 and y2 < y1+h1
 end
 
-function love.load(arg)
-
-  -- oculta o cursor do mouse
-  love.mouse.setVisible( false )
-
-
-  image = love.graphics.newImage('assets/corona_grid.png')
-  local g = anim8.newGrid(64, 64, image:getWidth(), image:getHeight())
-  animation = anim8.newAnimation(g('1-3',1), 0.1)
-
-  cursorImg = love.graphics.newImage('assets/biohazard_32x32.png')
-  coronaImg = love.graphics.newImage('assets/corona.png')
-  playerImg_0 = love.graphics.newImage('assets/player_0.png')
-  playerImg_1 = love.graphics.newImage('assets/player_1.png')
-  playerImg_2 = love.graphics.newImage('assets/player_2.png')
-  playerImg_3 = love.graphics.newImage('assets/player_3.png')
-  playerSndFatigue = love.audio.newSource('assets/NFF-boy-fatigue.wav', 'static')
-  playerSndDead = love.audio.newSource( 'assets/NFF-magic-drop.wav', 'static' )
-  player.img = playerImg_0;
-  player.mask = 0;
-  coronas = {}
-end
-
--- Atualização em tempo real
-function love.update(dt)
-  if love.keyboard.isDown('escape') then
-    love.event.push('quit')
-  end
-
-  -- verifica se está dentro da área
+function updatePlayerPosition( dt )
   if love.keyboard.isDown('left','a') then
     player.x = player.x - (player.speed*dt)
     if player.x < 10 then player.x = 10 end
@@ -95,18 +66,19 @@ function love.update(dt)
     player.y = player.y + (player.speed*dt)
     if player.y > screenHeight - 50 then player.y = screenHeight - 50 end
   end
+end
 
-  animation:update(dt)
-
-  -- Create an enemy
+function createCoronas(dt)
   createCoronaTimer = createCoronaTimer - (1 * dt)
   if createCoronaTimer < 0 then
     createCoronaTimer = createCoronaTimerMax
-    randomNumber = math.random(10, love.graphics.getHeight() - 10)
+    randomNumber = math.random(30, love.graphics.getHeight() - 50)
     newCorona = { y = randomNumber, x = love.graphics.getWidth() -10, img = coronaImg }
     table.insert( coronas, newCorona )
   end
+end
 
+function updateCoronasPosition(dt)
   -- update the positions of coronas
   for i, corona in ipairs(coronas) do
     corona.x = corona.x - (200 * dt)
@@ -114,7 +86,9 @@ function love.update(dt)
       table.remove(coronas, i)
     end
   end
+end
 
+function checkColisionCorona(dt)
   for i, corona in ipairs(coronas) do
     -- if checkCollision(corona.x, corona.y, corona.img:getWidth(), corona.img:getHeight(), player.x, player.y, player.img:getWidth(), player.img:getHeight()) then
     if checkCollisionRadius(corona.x, corona.y, corona.img:getWidth()*0.4, player.x, player.y, player.img:getWidth()*0.4) then
@@ -137,7 +111,43 @@ function love.update(dt)
       -- score = score + 1
     end
   end
+end
 
+function love.load(arg)
+  -- oculta o cursor do mouse
+  love.mouse.setVisible( false )
+
+  image = love.graphics.newImage('assets/corona_grid.png')
+  local g = anim8.newGrid(64, 64, image:getWidth(), image:getHeight())
+  animation = anim8.newAnimation(g('1-3',1), 0.1)
+
+  cursorImg = love.graphics.newImage('assets/biohazard_32x32.png')
+  coronaImg = love.graphics.newImage('assets/corona.png')
+  playerImg_0 = love.graphics.newImage('assets/player_0.png')
+  playerImg_1 = love.graphics.newImage('assets/player_1.png')
+  playerImg_2 = love.graphics.newImage('assets/player_2.png')
+  playerImg_3 = love.graphics.newImage('assets/player_3.png')
+  playerSndFatigue = love.audio.newSource('assets/NFF-boy-fatigue.wav', 'static')
+  playerSndDead = love.audio.newSource( 'assets/NFF-magic-drop.wav', 'static' )
+  player.img = playerImg_0;
+  player.mask = 0;
+  coronas = {}
+end
+
+
+-- Atualização em tempo real
+function love.update(dt)
+  if love.keyboard.isDown('escape') then
+    love.event.push('quit')
+  end
+
+  animation:update(dt)
+
+  updatePlayerPosition(dt)
+
+  createCoronas(dt)
+  updateCoronasPosition(dt)
+  checkColisionCorona(dt)
 end
 
 function love.draw(dt)
@@ -146,11 +156,9 @@ function love.draw(dt)
   -- cursor alternativo do mouse
   -- love.graphics.draw( cursorImg, love.mouse.getX(), love.mouse.getY() )
 
-  -- draw( img, x, y, rot, wF, hF, origemX, origemH )
   love.graphics.draw(player.img, player.x, player.y)
 
   for i, corona in ipairs(coronas) do
-    -- love.graphics.draw(corona.img, corona.x, corona.y)
     animation:draw(image, corona.x, corona.y)
   end
 

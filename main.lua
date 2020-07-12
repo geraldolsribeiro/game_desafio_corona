@@ -1,14 +1,18 @@
+--[[
+--
+--]]
 local anim8 = require 'anim8'
 
 debug = true
 
 player = {
   speed = 150,
-  img = nil,
-  x = 100,
-  y = 100,
-  mask = 0
+  img   = nil,
+  x     = 100,
+  y     = 100,
+  mask  = 0
 }
+
 
 coronaImg = nil
 playerImg_0 = nil
@@ -23,6 +27,20 @@ createCoronaTimerMax = 0.4
 createCoronaTimer = createCoronaTimerMax
 image = nil
 
+function status()
+  local st = "STATUS" .. "Máscaras: " .. 0
+  -- love.graphics.setColor( 0, 0, 0 )
+  love.graphics.print( st, 10, 10 )
+end
+
+function distance( x1, y1, x2, y2 )
+  return math.sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) )
+end
+
+function checkCollisionRadius( x1, y1, r1, x2, y2, r2 )
+  return distance( x1, y1, x2, y2 ) <= (r1+r2)
+end
+
 -- Collision detection taken function from http://love2d.org/wiki/BoundingBox.lua
 -- Returns true if two boxes overlap, false if they don't
 -- x1,y1 are the left-top coords of the first box, while w1,h1 are its width and height
@@ -32,10 +50,16 @@ function checkCollision(x1,y1,w1,h1, x2,y2,w2,h2)
 end
 
 function love.load(arg)
+
+  -- oculta o cursor do mouse
+  love.mouse.setVisible( false )
+
+
   image = love.graphics.newImage('assets/corona_grid.png')
   local g = anim8.newGrid(64, 64, image:getWidth(), image:getHeight())
   animation = anim8.newAnimation(g('1-3',1), 0.1)
 
+  cursorImg = love.graphics.newImage('assets/biohazard_32x32.png')
   coronaImg = love.graphics.newImage('assets/corona.png')
   playerImg_0 = love.graphics.newImage('assets/player_0.png')
   playerImg_1 = love.graphics.newImage('assets/player_1.png')
@@ -48,6 +72,7 @@ function love.load(arg)
   coronas = {}
 end
 
+-- Atualização em tempo real
 function love.update(dt)
   if love.keyboard.isDown('escape') then
     love.event.push('quit')
@@ -83,7 +108,8 @@ function love.update(dt)
   end
 
   for i, corona in ipairs(coronas) do
-    if checkCollision(corona.x, corona.y, corona.img:getWidth(), corona.img:getHeight(), player.x, player.y, player.img:getWidth(), player.img:getHeight()) then
+    -- if checkCollision(corona.x, corona.y, corona.img:getWidth(), corona.img:getHeight(), player.x, player.y, player.img:getWidth(), player.img:getHeight()) then
+    if checkCollisionRadius(corona.x, corona.y, corona.img:getWidth()*0.4, player.x, player.y, player.img:getWidth()*0.4) then
       table.remove(coronas, i)
       player.mask = player.mask + 1
 
@@ -107,10 +133,36 @@ function love.update(dt)
 end
 
 function love.draw(dt)
+  love.graphics.setBackgroundColor( 0.9, 0.9, 0.9 )
+
+  -- cursor alternativo do mouse
+  -- love.graphics.draw( cursorImg, love.mouse.getX(), love.mouse.getY() )
+
+  -- draw( img, x, y, rot, wF, hF, origemX, origemH )
   love.graphics.draw(player.img, player.x, player.y)
+
   for i, corona in ipairs(coronas) do
     -- love.graphics.draw(corona.img, corona.x, corona.y)
     animation:draw(image, corona.x, corona.y)
   end
 
+  status()
 end
+
+--[[
+function love.focus( f )
+  if f then
+    print "Janela do jogo ativa"
+  else
+    print "Sem foco no jogo!"
+  end
+end
+
+function love.quit()
+  print( "Volte logo!" )
+  if love.timer.sleep( 3 ) == 0 then
+    -- aqui o programa é fechado
+  end
+end
+--]]
+

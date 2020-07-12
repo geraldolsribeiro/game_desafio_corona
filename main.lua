@@ -3,6 +3,9 @@
 --]]
 local anim8 = require 'anim8'
 
+screenWidth  = love.graphics.getWidth();
+screenHeight = love.graphics.getHeight();
+
 debug = true
 
 player = {
@@ -78,14 +81,19 @@ function love.update(dt)
     love.event.push('quit')
   end
 
+  -- verifica se está dentro da área
   if love.keyboard.isDown('left','a') then
     player.x = player.x - (player.speed*dt)
+    if player.x < 10 then player.x = 10 end
   elseif love.keyboard.isDown('right','d') then
     player.x = player.x + (player.speed*dt)
+    if player.x > screenWidth - 50 then player.x = screenWidth - 50 end
   elseif love.keyboard.isDown('up','w') then
     player.y = player.y - (player.speed*dt)
+    if player.y < 30 then player.y = 30 end
   elseif love.keyboard.isDown('down','s') then
     player.y = player.y + (player.speed*dt)
+    if player.y > screenHeight - 50 then player.y = screenHeight - 50 end
   end
 
   animation:update(dt)

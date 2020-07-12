@@ -6,7 +6,7 @@ function love.conf(t)
   t.gammacorret           = false
 
   t.title                 = "Desafio Corona 2020"
-  t.window.icon           = "assets/icon.png"
+  t.window.icon           = "assets/image/icon.png"
   t.window.width          = 800
   t.window.height         = 480
   t.window.borderless     = false

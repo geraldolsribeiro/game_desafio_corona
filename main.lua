@@ -1,5 +1,16 @@
 --[[
---
+https://incompetech.com/music/
+Strength Of The Titans by Kevin MacLeod
+Link: https://filmmusic.io/song/5744-strength-of-the-titans
+License: http://creativecommons.org/licenses/by/4.0/
+
+Circus Of Freaks by Kevin MacLeod
+Link: https://incompetech.filmmusic.io/song/5740-circus-of-freaks
+License: http://creativecommons.org/licenses/by/4.0/
+
+Sound from Zapsplat.com
+
+
 --]]
 local anim8 = require 'anim8'
 
@@ -9,39 +20,55 @@ screenHeight = love.graphics.getHeight();
 debug = true
 
 player = {
-  speed = 150,
-  img   = nil,
-  x     = 100,
-  y     = 100,
-  mask  = 0
+  speed   = 150,
+  img     = nil,
+  x       = 100,
+  y       = 100,
+  mask    = 3,
+  alcohol = 0
 }
 
+-- Imagens
+alcoholImg       = nil
+coronaImg        = nil
+playerImg_0      = nil
+playerImg_1      = nil
+playerImg_2      = nil
+playerImg_3      = nil
 
-coronaImg = nil
-playerImg_0 = nil
-playerImg_1 = nil
-playerImg_2 = nil
-playerImg_3 = nil
+-- Sons
 playerSndFatigue = nil
-playerSndDead = nil
+playerSndDead    = nil
+alcoholBubbleSnd = nil
 
-coronas = {}
-createCoronaTimerMax = 0.4
-createCoronaTimer = createCoronaTimerMax
+-- Músicas
+backgroundMusic  = nil
+
+-- Listas de objetos
+coronas  = nil
+alcohols = nil
+
+-- Tempos para criação
+createCoronaTimerMax  = 0.4
+createAlcoholTimerMax = 1
+-- Temporizadores
+createCoronaTimer    = createCoronaTimerMax
+createAlcoholTimer   = createAlcoholTimerMax
+
 image = nil
 
 function status()
-  local st = "STATUS" .. "Máscaras: " .. 0
-  -- love.graphics.setColor( 0, 0, 0 )
-  love.graphics.print( st, 10, 10 )
+  local st = "STATUS" .. " Máscaras: " .. player.mask .. " Alcool: " .. player.alcohol
+  -- love.graphics.setColor(0, 0, 0)
+  love.graphics.print(st, 10, 10)
 end
 
-function distance( x1, y1, x2, y2 )
-  return math.sqrt( (x1-x2)*(x1-x2) + (y1-y2)*(y1-y2) )
+function distance(x1, y1, x2, y2)
+  return math.sqrt((x1-x2)*(x1-x2) + (y1-y2)*(y1-y2))
 end
 
-function checkCollisionRadius( x1, y1, r1, x2, y2, r2 )
-  return distance( x1, y1, x2, y2 ) <= (r1+r2)
+function checkCollisionRadius(x1, y1, r1, x2, y2, r2)
+  return distance(x1, y1, x2, y2) <= (r1+r2)
 end
 
 -- Collision detection taken function from http://love2d.org/wiki/BoundingBox.lua
@@ -52,7 +79,7 @@ function checkCollision(x1,y1,w1,h1, x2,y2,w2,h2)
   return x1 < x2+w2 and x2 < x1+w1 and y1 < y2+h2 and y2 < y1+h1
 end
 
-function updatePlayerPosition( dt )
+function updatePlayerPosition(dt)
   if love.keyboard.isDown('left','a') then
     player.x = player.x - (player.speed*dt)
     if player.x < 10 then player.x = 10 end
@@ -73,17 +100,46 @@ function createCoronas(dt)
   if createCoronaTimer < 0 then
     createCoronaTimer = createCoronaTimerMax
     randomNumber = math.random(30, love.graphics.getHeight() - 50)
-    newCorona = { y = randomNumber, x = love.graphics.getWidth() -10, img = coronaImg }
-    table.insert( coronas, newCorona )
+    newCorona = { y = randomNumber, x = love.graphics.getWidth() - 10, img = coronaImg }
+    table.insert(coronas, newCorona)
+  end
+end
+
+function createAlcohol(dt)
+  createAlcoholTimer = createAlcoholTimer - (1 * dt)
+  if createAlcoholTimer < 0 then
+    createAlcoholTimer = createAlcoholTimerMax
+    randomNumber = math.random(30, love.graphics.getHeight() - 50)
+    newAlcohol = { y = randomNumber, x = love.graphics.getWidth() - 10, img = alcoholImg }
+    table.insert(alcohols, newAlcohol)
   end
 end
 
 function updateCoronasPosition(dt)
-  -- update the positions of coronas
   for i, corona in ipairs(coronas) do
     corona.x = corona.x - (200 * dt)
-    if corona.x < -64 then -- remove coronas when they pass off the screen
+    if corona.x < -64 then
       table.remove(coronas, i)
+    end
+  end
+end
+
+function updateAlcoholsPosition(dt)
+  for i, alcohol in ipairs(alcohols) do
+    alcohol.x = alcohol.x - (200 * dt)
+    if alcohol.x < -64 then
+      table.remove(alcohols, i)
+    end
+  end
+end
+
+function checkColisionAlcohol(dt)
+  for i, alcohol in ipairs(alcohols) do
+    if checkCollisionRadius(alcohol.x, alcohol.y, alcohol.img:getWidth()*0.4, player.x, player.y, player.img:getWidth()*0.4) then
+      alcoholBubbleSnd:play();
+
+      table.remove(alcohols, i)
+      player.alcohol = player.alcohol + 1
     end
   end
 end
@@ -92,12 +148,14 @@ function checkColisionCorona(dt)
   for i, corona in ipairs(coronas) do
     -- if checkCollision(corona.x, corona.y, corona.img:getWidth(), corona.img:getHeight(), player.x, player.y, player.img:getWidth(), player.img:getHeight()) then
     if checkCollisionRadius(corona.x, corona.y, corona.img:getWidth()*0.4, player.x, player.y, player.img:getWidth()*0.4) then
-      table.remove(coronas, i)
-      player.mask = player.mask + 1
-
       playerSndFatigue:play()
 
-      if player.mask == 1 then
+      table.remove(coronas, i)
+      player.mask = player.mask - 1
+
+      if player.mask == 0 then
+        player.img = playerImg_0
+      elseif player.mask == 1 then
         player.img = playerImg_1
       elseif player.mask == 2 then
         player.img = playerImg_2
@@ -115,58 +173,79 @@ end
 
 function love.load(arg)
   -- oculta o cursor do mouse
-  love.mouse.setVisible( false )
+  love.mouse.setVisible(false)
 
-  image = love.graphics.newImage('assets/corona_grid.png')
+  image = love.graphics.newImage('assets/image/corona_grid.png')
   local g = anim8.newGrid(64, 64, image:getWidth(), image:getHeight())
-  animation = anim8.newAnimation(g('1-3',1), 0.1)
+  coronaAnim = anim8.newAnimation(g('1-3',1), 0.1)
 
-  cursorImg = love.graphics.newImage('assets/biohazard_32x32.png')
-  coronaImg = love.graphics.newImage('assets/corona.png')
-  playerImg_0 = love.graphics.newImage('assets/player_0.png')
-  playerImg_1 = love.graphics.newImage('assets/player_1.png')
-  playerImg_2 = love.graphics.newImage('assets/player_2.png')
-  playerImg_3 = love.graphics.newImage('assets/player_3.png')
-  playerSndFatigue = love.audio.newSource('assets/NFF-boy-fatigue.wav', 'static')
-  playerSndDead = love.audio.newSource( 'assets/NFF-magic-drop.wav', 'static' )
+  alcoholImg  = love.graphics.newImage('assets/image/alcohol70_32x32.png')
+  cursorImg   = love.graphics.newImage('assets/image/biohazard_32x32.png')
+  coronaImg   = love.graphics.newImage('assets/image/corona.png')
+  playerImg_0 = love.graphics.newImage('assets/image/player_0.png')
+  playerImg_1 = love.graphics.newImage('assets/image/player_1.png')
+  playerImg_2 = love.graphics.newImage('assets/image/player_2.png')
+  playerImg_3 = love.graphics.newImage('assets/image/player_3.png')
+
+  playerSndFatigue = love.audio.newSource('assets/sound/NFF-boy-fatigue.wav', 'static')
+  playerSndDead    = love.audio.newSource('assets/sound/NFF-magic-drop.wav', 'static')
+  alcoholBubbleSnd = love.audio.newSource('assets/sound/alcohol_bubbles.mp3', 'static')
+
+  backgroundMusic = love.audio.newSource('assets/music/circus-of-freaks-by-kevin-macleod-from-filmmusic-io.mp3','stream')
+  -- backgroundMusic = love.audio.newSource('assets/music/strength-of-the-titans-by-kevin-macleod-from-filmmusic-io.mp3','stream')
+
+  backgroundMusic:setVolume(0.05) -- 90% of ordinary volume
+  backgroundMusic:setLooping(true)
+  -- backgroundMusic:setPitch(0.5) -- one octave lower
+  backgroundMusic:play()
+
   player.img = playerImg_0;
-  player.mask = 0;
-  coronas = {}
+  player.mask = 3;
+
+  coronas  = {}
+  alcohols = {}
 end
 
 
--- Atualização em tempo real
 function love.update(dt)
   if love.keyboard.isDown('escape') then
     love.event.push('quit')
   end
 
-  animation:update(dt)
-
-  updatePlayerPosition(dt)
+  coronaAnim:update(dt)
 
   createCoronas(dt)
+  createAlcohol(dt)
+
+  updatePlayerPosition(dt)
   updateCoronasPosition(dt)
+  updateAlcoholsPosition(dt)
+
   checkColisionCorona(dt)
+  checkColisionAlcohol(dt)
 end
 
 function love.draw(dt)
-  love.graphics.setBackgroundColor( 0.9, 0.9, 0.9 )
+  love.graphics.setBackgroundColor(0.9, 0.9, 0.9)
 
   -- cursor alternativo do mouse
-  -- love.graphics.draw( cursorImg, love.mouse.getX(), love.mouse.getY() )
+  -- love.graphics.draw(cursorImg, love.mouse.getX(), love.mouse.getY())
 
   love.graphics.draw(player.img, player.x, player.y)
 
   for i, corona in ipairs(coronas) do
-    animation:draw(image, corona.x, corona.y)
+    coronaAnim:draw(image, corona.x, corona.y)
+  end
+
+  for i, alcohol in ipairs(alcohols) do
+    love.graphics.draw(alcoholImg, alcohol.x, alcohol.y)
   end
 
   status()
 end
 
 --[[
-function love.focus( f )
+function love.focus(f)
   if f then
     print "Janela do jogo ativa"
   else
@@ -175,8 +254,8 @@ function love.focus( f )
 end
 
 function love.quit()
-  print( "Volte logo!" )
-  if love.timer.sleep( 3 ) == 0 then
+  print("Volte logo!")
+  if love.timer.sleep(3) == 0 then
     -- aqui o programa é fechado
   end
 end
